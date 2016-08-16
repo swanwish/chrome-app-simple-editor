@@ -1,7 +1,7 @@
 window.onload = function () {
     var taElement = document.querySelector("#textarea");
     var dirty = false;
-    var wantSync = false;
+    var wantSync = true;
 
     document.querySelector("#new").addEventListener("click", newFile);
     document.querySelector("#open").addEventListener("click", openFile);
@@ -311,5 +311,16 @@ window.onload = function () {
                 setParams({foreground: color}, wantSync);
         }
     }
+
+    chrome.storage.onChanged.addListener(
+        function (changes, areaName) {
+            if (areaName === "sync") {
+                if (changes.foreground)
+                    setForeground(changes.foreground.newValue);
+                if (changes.background)
+                    setBackground(changes.background.newValue);
+            }
+        }
+    );
 
 };
