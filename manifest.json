@@ -1,0 +1,30 @@
+{
+  "app": {
+    "background": {
+      "scripts": [
+        "background.js"
+      ]
+    }
+  },
+  "manifest_version": 2,
+  "name": "Simple Editor",
+  "version": "1.0.0",
+  "permissions": [
+    "http://labs.y9i.net/*",
+    "storage",
+    {
+      "fileSystem": [
+        "directory",
+        "write",
+        "retainEntries"
+      ]
+    }
+  ],
+  "file_handlers": {
+    "text": {
+      "types": [
+        "text/*"
+      ]
+    }
+  }
+}
