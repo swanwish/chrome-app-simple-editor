@@ -1,10 +1,16 @@
 window.onload = function () {
     var taElement = document.querySelector("#textarea");
     var dirty = false;
+    var wantSync = false;
+
     document.querySelector("#new").addEventListener("click", newFile);
     document.querySelector("#open").addEventListener("click", openFile);
     document.querySelector("#save").addEventListener("click", saveFile);
     document.querySelector("#saveas").addEventListener("click", saveFileAs);
+
+    var optionsButton = document.querySelector("#options");
+    if (optionsButton)
+        optionsButton.addEventListener("click", options);
 
     taElement.addEventListener("keypress", didChange);
     taElement.addEventListener("paste", didChange);
@@ -13,20 +19,32 @@ window.onload = function () {
     taElement.addEventListener("keydown", didChange);
 
     // I don't know where to call this function, the book didn't say it clearly
-    // getParams("BackupFolderID",
-    //     function (items) {
-    //         if (chrome.runtime.lastError)
-    //             showMessage('Unable to get backup folder ID. (' +
-    //                 chrome.runtime.lastError.message + ')');
-    //         else if (items && items.BackupFolderID)
-    //             chrome.fileSystem.restoreEntry(items.BackupFolderID,
-    //                 function (entry) {
-    //                     directoryEntryBackup = entry;
-    //                     show_backup_folder();
-    //                 });
-    //         else
-    //             setBackup();
-    //     });
+    // The method is implemented in Chapter 3
+    getParams("BackupFolderID",
+        function (items) {
+            if (chrome.runtime.lastError)
+                showMessage('Unable to get backup folder ID. (' +
+                    chrome.runtime.lastError.message + ')');
+            else if (items && items.BackupFolderID)
+                chrome.fileSystem.restoreEntry(items.BackupFolderID,
+                    function (entry) {
+                        directoryEntryBackup = entry;
+                        show_backup_folder();
+                    });
+            else
+                setBackup();
+        });
+
+    getParams(["foreground", "background"],
+        function (items) {
+            if (chrome.runtime.lastError)
+                console.log(chrome.runtime.lastError);
+            else {
+                setForeground(items.foreground);
+                setBackground(items.background);
+            }
+        },
+        wantSync);
 
     function didChange(e) {
         if (e.type !== 'keydown' ||
@@ -210,4 +228,88 @@ window.onload = function () {
             errorHandler
         );
     }
+
+    function setParams(x, wantSync) {
+        var storageArea = wantSync ? chrome.storage.sync : chrome.storage.local;
+        storageArea.set(x,
+            function () {
+                if (chrome.runtime.lastError)
+                    console.log(chrome.runtime.lastError);
+            }
+        );
+    }
+
+    function getParams(x, callback, wantSync) {
+        var storageArea = wantSync ? chrome.storage.sync : chrome.storage.local;
+        storageArea.get(x,
+            function (items) {
+                if (chrome.runtime.lastError)
+                    console.log(chrome.runtime.lastError);
+                else
+                    callback(items);
+            }
+        );
+    }
+
+    function options() {
+        var bg;
+        var fg;
+        Dialogs.dialog(
+            "<p>Background Color: <input type='color' id='bg-color'>" +
+            "<p>Foreground Color: <input type='color' id='fg-color'>" +
+            "<p><button id='setbackup'>Set Backup...</button>" +
+            "<p><button id='dlg-ok'>OK</button>",
+            [
+                {
+                    id: 'dlg-ok',
+                    action: function () {
+                        setBackground(bg.value, true);
+                        setForeground(fg.value, true);
+                    }
+                }
+            ],
+            function () {
+                bg = document.querySelector('#bg-color');
+                fg = document.querySelector('#fg-color');
+                var bgcolor = taElement.style["background-color"];
+                var fgcolor = taElement.style["color"];
+                if (bgcolor && fgcolor) {
+                    bg.value = rgb2hex(bgcolor);
+                    fg.value = rgb2hex(fgcolor);
+                }
+                else {
+                    bg.value = "#ffffff";
+                    fg.value = "#000000";
+                }
+                document.querySelector("#setbackup").addEventListener("click", setBackup);
+            }
+        );
+    }
+
+    function rgb2hex(rgb) {
+        var components = rgb.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/);
+
+        function hex(x) {
+            return ("0" + parseInt(x).toString(16)).slice(-2);
+        }
+
+        return "#" + hex(components[1]) + hex(components[2]) + hex(components[3]);
+    }
+
+    function setBackground(color, wantSave) {
+        if (color) {
+            document.querySelector("#textarea").style["background-color"] = color;
+            if (wantSave)
+                setParams({background: color}, wantSync);
+        }
+    }
+
+    function setForeground(color, wantSave) {
+        if (color) {
+            document.querySelector("#textarea").style["color"] = color;
+            if (wantSave)
+                setParams({foreground: color}, wantSync);
+        }
+    }
+
 };
