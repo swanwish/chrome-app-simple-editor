@@ -10,7 +10,6 @@
   "name": "Simple Editor",
   "version": "1.0.0",
   "permissions": [
-    "http://labs.y9i.net/*",
     "storage",
     {
       "fileSystem": [
